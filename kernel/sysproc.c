@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -94,4 +95,31 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// assign the new system call.
+uint64
+sys_trace(void)
+{
+	int n;
+	if(argint(0, &n)<0){
+		printf("trace: failed to get arg\n");
+		return -1;
+	}
+	myproc()->mask = n;
+	return 0;
+}
+
+// pass sysinfo from kernel to user space.
+uint64
+sys_sysinfo(void){
+  uint64 addr;
+  struct proc *p = myproc();
+  argaddr(0, &addr);
+  struct sysinfo si;
+  si.nproc = countUUSDProc();
+  si.freemem = getFreeMem();
+  if(copyout(p->pagetable, addr, (char *)&si, sizeof(si))<0)
+    return -1;
+  return 0;
 }
